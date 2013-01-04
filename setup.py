@@ -1,7 +1,5 @@
 from distutils.core import setup
 from distutils.extension import Extension
-import os
-import sys
 
 cmdclasses = {}
 try:
@@ -12,13 +10,13 @@ else:
     cmdclasses['build_ext'] = build_ext
 
 setup(
-    name='php-serialize',
+    name='phpserialize',
     version='1.0',
-    url='http://code.google.com/p/php-serizlize/',
+    url='http://github.com/sdfsdhgjkbmnmxc/phpserialize',
     author='Maxim Oransky',
     author_email='maxim.oransky@gmail.com',
     description='Php serialization/deserialization implementation on Python',
-#    packages=packages,
+    # packages=packages,
     cmdclass=cmdclasses,
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -30,6 +28,3 @@ setup(
         Extension("phpserialize_speedups", ["phpserialize_speedups.pyx"])
     ]
 )
-
-
-

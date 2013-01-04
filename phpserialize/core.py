@@ -121,6 +121,7 @@ def serialize(struct, typecast=None):
     # d:<float>;
     if struct_type is float:
         return 'd:%.20f;' % struct  # 20 digits after comma
+
     # d:<float>;
     if struct_type is Decimal:
         return 'd:%.20f;' % struct  # 20 digits after comma

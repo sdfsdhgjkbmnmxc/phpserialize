@@ -1,5 +1,7 @@
+from decimal import Decimal
 from phpserialize.errors import PhpUnserializationError, PhpSerializationError, \
     _PhpUnserializationError
+import string
 
 
 cdef extern from "Python.h":
@@ -58,27 +60,37 @@ def unserialize(s):
     """
     Unserialize python struct from php serialization format
     """
+    if not isinstance(s, basestring) or s == '':
+        raise ValueError('Unserialize argument must be non-empty string')
+
     try:
         return Unserializator(s).unserialize()
     except _PhpUnserializationError, e:
         char = len(str(s)) - len(e.rest)
         delta = 50
         try:
-            message = '%s in %s' % (e.message,
-                '...%s --> %s <-- %s...' % (s[(char > delta and char - delta or 0):char], s[char], s[char + 1:char + delta]))
+            sample = u'...%s --> %s <-- %s...' % (
+                s[(char > delta and char - delta or 0):char],
+                s[char],
+                s[char + 1:char + delta]
+            )
+            message = u'%s in %s' % (e.message, sample)
         except Exception, e:
             print e
             raise
         print message
         raise PhpUnserializationError(message)
 
-def serialize(struct):
-    return do_serialize(struct)
-    
-cdef str do_serialize(object struct):
+def serialize(struct, typecast=None):
+    return do_serialize(struct, typecast)
+
+cdef str do_serialize(object struct, object typecast=None):
     """
     Serialize python struct into php serialization format
     """
+    if typecast:
+        struct = typecast(struct)
+
     # N;
     if struct is None:
         return 'N;'
@@ -86,6 +98,10 @@ cdef str do_serialize(object struct):
     struct_type = type(struct)
     # d:<float>;
     if struct_type is float:
+        return 'd:%.20f;' % struct  # 20 digits after comma
+
+    # d:<float>;
+    if struct_type is Decimal:
         return 'd:%.20f;' % struct  # 20 digits after comma
 
     # b:<0 or 1>;
@@ -101,31 +117,31 @@ cdef str do_serialize(object struct):
         return 's:%d:"%s";' % (len(struct), struct)
 
     if struct_type is unicode:
-        return do_serialize(struct.encode('utf-8'))
+        return do_serialize(struct.encode('utf-8'), typecast)
 
+    # a:<hash_length>:{<key><value><key2><value2>...<keyN><valueN>}
     if struct_type is dict:
-         # a:<hash_length>:{<key><value><key2><value2>...<keyN><valueN>}
-        core = ''.join([do_serialize(k) + do_serialize(struct[k]) for k in struct])
-        return 'a:%d:{%s}' % (len(struct), core)  
-        
+        core = ''.join([do_serialize(k, typecast) + do_serialize(v, typecast) for k, v in struct.items()])
+        return 'a:%d:{%s}' % (len(struct), core)
+
     if struct_type is tuple or struct_type is list:
-        return do_serialize(dict(enumerate(struct)))
+        return do_serialize(dict(enumerate(struct)), typecast)
 
     if isinstance(struct, PHP_Class):
         return 'O:%d:"%s":%d:{%s}' % (
             len(struct.name),
             struct.name,
             len(struct),
-            ''.join([do_serialize(x.php_name) + do_serialize(x.value) for x in struct]),
+            ''.join([do_serialize(x.php_name, typecast) + do_serialize(x.value, typecast) for x in struct]),
         )
-        
-    raise PhpSerializationError('PHP serialize: cannot encode `%s`' % struct)
+
+    raise PhpSerializationError('PHP serialize: cannot encode %r' % struct)
 
 
 cdef class Unserializator(object):
     cdef int _position
     cdef str _str
-    
+
     def __init__(self, s):
         self._position = 0
         self._str = s
@@ -173,7 +189,7 @@ cdef class Unserializator(object):
 
         if t == 'i':
             return int(self.take_while_not(';'))
-            
+
         if t == 'd':
             return float(self.take_while_not(';'))
 
@@ -194,7 +210,7 @@ cdef class Unserializator(object):
             if result.keys() == range(size):
                 return result.values()
             else:
-                return result            
+                return result
 
         if t == 'O':
             object_name_size = int(self.take_while_not(':'))
@@ -202,7 +218,7 @@ cdef class Unserializator(object):
             object_name = self.take(object_name_size)
             self.await('"')
             self.await(':')
-            object_length = int(self.take_while_not(':'))            
+            object_length = int(self.take_while_not(':'))
             php_class = PHP_Class(object_name)
             members = self.parse_hash_core(object_length)
             if members:

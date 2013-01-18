@@ -1,7 +1,9 @@
+from cpython cimport bool
 from decimal import Decimal
 from phpserialize.errors import PhpUnserializationError, PhpSerializationError, \
     _PhpUnserializationError
-import string
+
+DEFAULT_UNICODE_ENCODING = 'utf-8'
 
 
 cdef extern from "Python.h":
@@ -117,7 +119,7 @@ cdef str do_serialize(object struct, object typecast=None):
         return 's:%d:"%s";' % (len(struct), struct)
 
     if struct_type is unicode:
-        return do_serialize(struct.encode('utf-8'), typecast)
+        return do_serialize(struct.encode(DEFAULT_UNICODE_ENCODING), typecast)
 
     # a:<hash_length>:{<key><value><key2><value2>...<keyN><valueN>}
     if struct_type is dict:
@@ -139,19 +141,25 @@ cdef str do_serialize(object struct, object typecast=None):
 
 
 cdef class Unserializator(object):
+    cdef bool _is_unicode
     cdef int _position
     cdef str _str
 
-    def __init__(self, s):
+    def __init__(self, object s):
         self._position = 0
-        self._str = s
+        if isinstance(s, unicode):
+            self._str = s.encode(DEFAULT_UNICODE_ENCODING)
+            self._is_unicode = True
+        else:
+            self._str = s
+            self._is_unicode = False
 
-    cdef inline void await(self, symbol, n=1):
+    cdef inline void await(self, str symbol, int n=1):
         result = self.take(n)
         if result != symbol:
             raise _PhpUnserializationError('Next is `%s` not `%s`' % (result, symbol), self.get_rest())
 
-    cdef inline str take(self, n=1):
+    cdef inline str take(self, int n=1):
         result = self._str[self._position:self._position + n]
         self._position += n
         return result
@@ -168,17 +176,17 @@ cdef class Unserializator(object):
     cdef str get_rest(self):
         return self._str[self._position:]
 
-    cdef dict parse_hash_core(self, size):
+    cdef dict parse_hash_core(self, int size):
         result = {}
         self.await('{')
-        for i from 0 <= i < size:
+        for i in range(size):
             k = self.unserialize()
             v = self.unserialize()
             result[k] = v
         self.await('}')
         return result
 
-    def unserialize(self):
+    cdef object unserialize(self):
         t = self.take()
 
         if t == 'N':
@@ -202,6 +210,8 @@ cdef class Unserializator(object):
             result = self.take(size)
             self.await('"')
             self.await(';')
+            if self._is_unicode:
+                return result.decode(DEFAULT_UNICODE_ENCODING)
             return result
 
         if t == 'a':

@@ -3,6 +3,7 @@ from phpserialize.errors import PhpUnserializationError, PhpSerializationError, 
     _PhpUnserializationError
 import string
 
+
 class PHP_Class(object):
     def __init__(self, name, properties=()):
         self.name = name
@@ -105,6 +106,7 @@ def unserialize(s):
         except Exception, e:
             raise
         raise PhpUnserializationError(message)
+
 
 def serialize(struct, typecast=None):
     """

@@ -1,5 +1,6 @@
 from cpython cimport bool
 from decimal import Decimal
+from phpserialize.core import PHP_Class
 from phpserialize.errors import PhpUnserializationError, PhpSerializationError, \
     _PhpUnserializationError
 
@@ -14,48 +15,6 @@ cdef extern from "Python.h":
 
 cdef inline bint typecheck(object ob, object tp):
     return PyObject_TypeCheck(ob, <PyTypeObject*>tp)
-
-
-class PHP_Class(object):
-    def __init__(self, name, properties=()):
-        self.name = name
-        self._properties = {}
-        for prop in properties:
-            self._properties[prop.name] = prop
-
-    def set_item(self, php_name, value=None):
-        prop = PHP_Property(php_name, value)
-        self._properties[prop.name] = prop
-
-    def __iter__(self):
-        return iter(self._properties.values())
-
-    def __len__(self):
-        return len(self._properties)
-
-    def __repr__(self):
-        return "PHP_Class(%s, %s)" % (repr(self.name), list(self))
-
-    __unicode__ = __str__ = __repr__
-
-    def __getitem__(self, name):
-        return self._properties[name].value
-
-    def __eq__(self, other):
-        return repr(self) == repr(other)
-
-
-class PHP_Property(object):
-    SEPARATOR = '\x00'
-    def __init__(self, php_name, value):
-        self.php_name = php_name
-        self.name = php_name.split(self.SEPARATOR)[-1]
-        self.value = value
-
-    def __repr__(self):
-        return 'PHP_Property(%s, %s)' % (repr(self.php_name), repr(self.value))
-
-    __str__ = __unicode__ = __repr__
 
 
 def unserialize(s):

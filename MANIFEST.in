@@ -1,2 +1,2 @@
-recursive-include *
+recursive-include . *
 recursive-exclude * *.py[co] .git

@@ -1,9 +1,10 @@
 from distutils.core import setup
 from distutils.extension import Extension
 
+
 setup(
     name='phpserialize',
-    version='1.0',
+    version='1.1',
     url='http://github.com/sdfsdhgjkbmnmxc/phpserialize',
     author='Maxim Oransky',
     author_email='maxim.oransky@gmail.com',

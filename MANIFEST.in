@@ -1,2 +1,4 @@
+include *
+exclude .git
 exclude profile.py
 exclude profile.php

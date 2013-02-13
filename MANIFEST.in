@@ -1,2 +1,3 @@
-recursive-include . *
-recursive-exclude * *.py[co] .git
+include setup.py
+recursive-include phpserialize *
+recursive-exclude *.py[co] .git

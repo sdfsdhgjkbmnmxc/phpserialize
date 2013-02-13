@@ -14,6 +14,9 @@ setup(
         'Programming Language :: Python',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
+    packages=[
+        'phpserialize',
+    ],
     ext_modules=[
         Extension("phpserialize_speedups", ["phpserialize_speedups.c"])
     ]

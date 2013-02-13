@@ -18,6 +18,6 @@ setup(
         'phpserialize',
     ],
     ext_modules=[
-        Extension("phpserialize_speedups", ["phpserialize_speedups.c"])
+        Extension("phpserialize._speedups", ["phpserialize/_speedups.c"])
     ]
 )
